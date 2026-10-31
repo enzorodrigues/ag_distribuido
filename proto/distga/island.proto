@@ -1,0 +1,27 @@
+syntax = "proto3";
+package distga;
+
+// Todas as mensagens carregam o campo "lamport" (relógio lógico).
+service IslandService {
+  rpc Migrate(MigrationRequest) returns (Ack);              // migração de indivíduos (anel)
+  rpc Election(ElectionRequest) returns (ElectionReply);    // valentão: ELEIÇÃO -> OK
+  rpc Coordinator(CoordinatorRequest) returns (Ack);        // valentão: COORDENADOR
+  rpc Ping(PingRequest) returns (PingReply);                // heartbeat / descoberta de líder
+  rpc GetTime(TimeRequest) returns (TimeReply);             // Berkeley: líder pede a hora
+  rpc AdjustTime(AdjustRequest) returns (Ack);              // Berkeley: líder envia ajuste
+  rpc GetBest(BestRequest) returns (BestReply);             // líder coleta o melhor tour
+}
+
+message Individual { repeated int32 tour = 1; double length = 2; }
+message MigrationRequest { int32 sender_id = 1; int64 lamport = 2; repeated Individual migrants = 3; }
+message Ack { int64 lamport = 1; bool ok = 2; }
+message ElectionRequest { int32 sender_id = 1; int64 lamport = 2; }
+message ElectionReply { int32 responder_id = 1; int64 lamport = 2; }
+message CoordinatorRequest { int32 leader_id = 1; int64 lamport = 2; }
+message PingRequest { int32 sender_id = 1; int64 lamport = 2; }
+message PingReply { int32 responder_id = 1; int64 lamport = 2; int32 leader_id = 3; }
+message TimeRequest { int32 sender_id = 1; int64 lamport = 2; }
+message TimeReply { double physical_time = 1; int64 lamport = 2; }
+message AdjustRequest { int32 sender_id = 1; int64 lamport = 2; double offset = 3; }
+message BestRequest { int32 sender_id = 1; int64 lamport = 2; }
+message BestReply { int32 node_id = 1; int64 lamport = 2; int32 generation = 3; Individual best = 4; }
