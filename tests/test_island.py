@@ -75,3 +75,37 @@ def test_migrante_melhor_vira_o_best():
     otimo = Individual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 0)
     isl.receive_migrants([otimo])
     assert isl.best().length <= tour_length(otimo.tour, cities) + 1e-9
+
+
+def test_busca_local_melhora_muito_mais_que_ag_puro():
+    cities = make_cities(40, 3)
+    puro = Island(cities, pop_size=50, seed=1)
+    mem = Island(cities, pop_size=50, seed=1, local_search_k=3)
+    for _ in range(30):
+        puro.step()
+        mem.step()
+    assert mem.best().length < puro.best().length
+
+
+def test_busca_local_marca_otimos_locais_e_mantem_validade():
+    isl = Island(make_cities(20, 1), pop_size=30, seed=2, local_search_k=3)
+    for _ in range(5):
+        isl.step()
+    assert any(i.opt for i in isl.population)
+    assert all(is_valid_tour(i.tour, 20) for i in isl.population)
+    assert all(i.length == pytest.approx(tour_length(i.tour, isl.cities)) for i in isl.population)
+
+
+def test_busca_local_mantem_elitismo():
+    isl = Island(make_cities(25, 4), pop_size=30, seed=3, local_search_k=2)
+    anterior = isl.best().length
+    for _ in range(15):
+        isl.step()
+        assert isl.best().length <= anterior + 1e-9
+        anterior = isl.best().length
+
+
+def test_migrante_nao_herda_flag_de_otimo_local(island):
+    ind = Individual(list(range(20)), 0.0, opt=True)
+    island.receive_migrants([ind])
+    assert any(i.tour == list(range(20)) and not i.opt for i in island.population)

@@ -49,7 +49,7 @@
 - *Lamport:* envio = `tick()` e coloca em `lamport`; recepção = `max(local, msg)+1`.
 - *Valentão:* envia ELEIÇÃO aos maiores (em paralelo). Sem OK → vira líder e anuncia COORDENADOR. Com OK → espera o anúncio (timeout) e repete até 3 rodadas. Quem recebe ELEIÇÃO de ID menor responde OK e inicia a própria. Nó que entra depois só adota o líder se este tiver ID maior; senão, disputa e assume.
 - *Berkeley:* líder mede `t0/t1` ao pedir a hora, estima o relógio do nó como `t_nó + RTT/2`, calcula diferenças em relação a si, descarta outliers acima do limite, tira a média e envia a cada nó o **ajuste relativo** `média − diferença` (inclusive a si).
-- *AG:* elitismo (2) + torneio (3) + cruzamento OX + mutação por troca.
+- *AG:* elitismo (2) + torneio (3) + cruzamento OX + mutação por troca. Opcionalmente **memético** (`--local-search-k`, padrão 3): aplica busca local **2-opt** aos k melhores indivíduos de cada geração.
 
 **Ordem de construção (já realizada)**
 1. `.proto` + stubs → 2. `clocks`, `tsp`, `island`, `election` (puros e testáveis) → 3. `node` (gRPC, migração, monitor, Berkeley, REST) → 4. `run_node.py` → 5. testes → 6. execução com processos reais.
@@ -66,9 +66,23 @@
 Critérios de aceite: líder = maior ID vivo em todos os nós; reeleição em poucos segundos; relógios convergem à média; `/best` responde 409 fora do líder; melhor tour nunca piora.
 
 ## 4. Resultados obtidos
-- `pytest`: **94 testes passando** (3 execuções seguidas, sem instabilidade).
+- `pytest`: **121 testes passando**.
 - Execução real com 3 processos: líder 3 eleito; Berkeley levou os relógios (skews −3, 4, 11) à média 4,0; `/best` agregou o melhor tour; ao matar o nó 3, o nó 2 detectou e assumiu a liderança.
 - Defeito encontrado e corrigido nos testes: nó de ID maior que entra tarde adotava o líder menor; agora dispara eleição e assume.
+
+## 4.1 Desempenho do AG (simulação sequencial, 5 sementes, 300 gerações)
+
+Referência: vizinho mais próximo + 2-opt (NN+2opt).
+
+| Configuração | 60 cidades (ref. 633,6) | 150 cidades (ref. 1013,3) |
+|---|---|---|
+| AG puro, 1 ilha | 1286,2 | 4973,1 |
+| Memético (2-opt), 1 ilha, pop 100 | 618,1 | 954,9 |
+| Memético, 1 ilha, pop 300 (mesma CPU de 3 ilhas) | 616,7 | 955,5 |
+| Memético, 3 ilhas c/ migração | 613,0 | 942,0 |
+| Memético, 3 ilhas s/ migração | 614,6 | 944,9 |
+
+Leitura honesta: a busca local 2-opt é o que torna o AG competitivo (o AG puro fica muito pior que a referência). As ilhas dão ganho pequeno (~1,3% em 150 cidades, dentro de 1 a 3 desvios-padrão), e a diferença entre com e sem migração não é conclusiva. Medição feita em um único processo; o tempo de parede distribuído será medido na Entrega 2.
 
 ## 5. Limitações conhecidas (insumo para a Entrega 2)
 - Berkeley aplica o ajuste de uma vez (a lentificação gradual do relógio, vista no Ex. 14.2, não foi implementada).

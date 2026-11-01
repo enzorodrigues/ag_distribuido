@@ -19,7 +19,7 @@ class Node(pbg.IslandServiceServicer):
                  n_migrants=3, pop_size=100, skew=0.0, seed=None, rpc_timeout=1.0,
                  hb_interval=1.0, startup_delay=1.0, gen_delay=0.0,
                  berkeley_interval=10.0, berkeley_threshold=None,
-                 election_timeout=3.0, rest_port=None, quiet=False):
+                 election_timeout=3.0, rest_port=None, quiet=False, local_search_k=0):
         """peers: {id: 'host:porta'} de TODOS os nós, inclusive este."""
         self.id = node_id
         self.address = peers[node_id]
@@ -39,7 +39,8 @@ class Node(pbg.IslandServiceServicer):
         self.clock = LamportClock()
         self.physical = PhysicalClock(skew)
         self.island = Island(cities, pop_size=pop_size,
-                             seed=None if seed is None else seed + node_id)
+                             seed=None if seed is None else seed + node_id,
+                             local_search_k=local_search_k)
         self.election = BullyElection(self.id, list(self.peers), self._send_election,
                                       self._send_coordinator, wait_timeout=election_timeout)
         self.finished = False

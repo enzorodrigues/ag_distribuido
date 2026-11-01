@@ -23,6 +23,8 @@ def main():
     ap.add_argument("--skew", type=float, default=0.0, help="defasagem inicial do relógio físico (s)")
     ap.add_argument("--hb-interval", type=float, default=1.0)
     ap.add_argument("--berkeley-interval", type=float, default=10.0)
+    ap.add_argument("--local-search-k", type=int, default=3,
+                    help="2-opt nos k melhores por geração (0 = AG puro)")
     ap.add_argument("--no-rest", action="store_true")
     a = ap.parse_args()
 
@@ -32,7 +34,7 @@ def main():
                 generations=a.generations, migration_interval=a.migration_interval,
                 n_migrants=a.migrants, pop_size=a.pop, skew=a.skew, seed=a.seed,
                 hb_interval=a.hb_interval, gen_delay=a.gen_delay,
-                berkeley_interval=a.berkeley_interval,
+                berkeley_interval=a.berkeley_interval, local_search_k=a.local_search_k,
                 rest_port=None if a.no_rest else port + 1000)
     node.start()
     try:

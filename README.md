@@ -23,7 +23,7 @@ Teste de falha: mate o líder (maior ID) com Ctrl-C/kill e observe a reeleição
 
 ## Testes
 ```bash
-pytest -q            # 94 testes (unitários + integração)
+pytest -q            # 121 testes (unitários + integração)
 pytest tests/test_integration.py -q
 ```
 Detalhes de projeto, conexão e plano de testes: `docs/PLANO.md`.

@@ -3,21 +3,22 @@ import random
 import threading
 from dataclasses import dataclass
 
-from distga.tsp import is_valid_tour, order_crossover, swap_mutation, tour_length
+from distga.tsp import is_valid_tour, order_crossover, swap_mutation, tour_length, two_opt
 
 
 @dataclass
 class Individual:
     tour: list
     length: float
+    opt: bool = False   # já é ótimo local 2-opt (evita refazer a busca)
 
     def copy(self):
-        return Individual(list(self.tour), self.length)
+        return Individual(list(self.tour), self.length, self.opt)
 
 
 class Island:
     def __init__(self, cities, pop_size=100, mutation_rate=0.02, elite=2,
-                 tournament_size=3, seed=None):
+                 tournament_size=3, seed=None, local_search_k=0):
         if len(cities) < 3:
             raise ValueError("são necessárias ao menos 3 cidades")
         self.cities = cities
@@ -26,6 +27,7 @@ class Island:
         self.mutation_rate = mutation_rate
         self.elite = elite
         self.tournament_size = tournament_size
+        self.local_search_k = local_search_k  # 0 = AG puro; k>0 = AG memético (2-opt nos k melhores)
         self.rng = random.Random(seed)
         self._lock = threading.RLock()
         self.generation = 0
@@ -48,8 +50,17 @@ class Island:
             while len(new) < self.pop_size:
                 child = order_crossover(self._select().tour, self._select().tour, self.rng)
                 new.append(self._make(swap_mutation(child, self.mutation_rate, self.rng)))
+            if self.local_search_k > 0:
+                new.sort(key=lambda i: i.length)
+                for k, ind in enumerate(new[:self.local_search_k]):
+                    if not ind.opt:
+                        new[k] = self._improve(ind)
             self.population = new
             self.generation += 1
+
+    def _improve(self, ind):
+        tour = two_opt(ind.tour, self.cities)
+        return Individual(tour, tour_length(tour, self.cities), True)
 
     def best(self):
         with self._lock:
